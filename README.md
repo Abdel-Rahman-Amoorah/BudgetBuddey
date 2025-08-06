@@ -11,27 +11,6 @@
 - 💾 Data stored locally on the device
 - 🔒 Offline-first with no internet connection required
 
-## Folder Structure
-
-```
-.
-├── App.js
-├── components/
-├── pages/
-│   ├── IncomePage.js
-│   ├── ExpensesPage.js
-│   ├── SummaryPage.js
-├── Models/
-│   ├── income.js
-│   ├── expenses.js
-├── utils/
-│   ├── context.js
-│   ├── storage.js
-├── styles/
-│   ├── income.js
-│   ├── expenses.js
-│   ├── summary.js
-```
 
 ## License
 

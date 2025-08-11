@@ -6,7 +6,7 @@ export class Income {
         this.source = source;           // e.g., "Salary", "Freelance"
         this.startDate = startDate;     // e.g., "2025-08-01"
         this.recurring = recurring;     // true or false
-        this.frequency = frequency;     // "monthly", "weekly", null
+        this.frequency = frequency;     // Daily, Weekly, Monthly, null for one-time income
     }
 }
 
@@ -23,12 +23,15 @@ export class Expense {
 
 // Saving Entry
 export class Saving {
-    constructor(id, amount, goal, month, year, targetAmount = null,) {
+    constructor(id, amount, goal, deadline, targetAmount = null, goalStatus) {
         this.id = id;                 // unique identifier
         this.amount = amount;           // how much saved
         this.goal = goal;               // e.g., "Emergency Fund", "Vacation"
-        this.month = month;             // "August"
-        this.year = year;               // 2025
+        this.deadline = deadline;       // e.g., "2025-12-31"
         this.targetAmount = targetAmount; // optional goal target    
+        this.goalStatus = goalStatus || false;   // true if goal is met, false otherwise
+        this.currentAmount = currentAmount || 0;
+        this.category = category || "🎯";
+        this.color = color || "#34495E";
     }
 }

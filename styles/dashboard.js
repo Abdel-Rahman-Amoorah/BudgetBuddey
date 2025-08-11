@@ -177,6 +177,7 @@ const styles = StyleSheet.create({
   footerButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
+
     fontWeight: "bold",
   },
   header: {
@@ -186,7 +187,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     padding: 15,
     borderRadius: 12,
-    marginBottom: 20,
+    marginTop: 20,
+    marginBottom: 15,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -201,8 +203,31 @@ const styles = StyleSheet.create({
     backgroundColor: "#2C3E50",
     paddingVertical: 12,
     borderRadius: 8,
-    marginBottom: 15,
     alignItems: "center",
+  },
+  cardContentWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+
+  expandButton: {
+    fontSize: 16,
+  },
+
+  incomeBreakdown: {
+    marginTop: 10,
+  },
+
+  breakdownItem: {
+    fontSize: 14,
+    color: "#34495E",
+    marginBottom: 3,
+  },
+  summaryAmountContainer: {
+   flexDirection: "row", 
+   alignItems: "center", 
+   justifyContent: "space-between",
   },
 })
 

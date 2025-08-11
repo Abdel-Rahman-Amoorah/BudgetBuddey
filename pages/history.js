@@ -1,8 +1,5 @@
-// const defaultData = { income: [], expenses: [], savings: [] };
-// await saveBudgetData(defaultData);
-
 import { useState } from "react"
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Modal } from "react-native"
+import { View, Text, TouchableOpacity, ScrollView, Modal } from "react-native"
 import styles from "../styles/history"
 const HistoryPage = () => {
   const [selectedMonth, setSelectedMonth] = useState("2024-01")

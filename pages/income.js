@@ -10,12 +10,12 @@ const IncomePage = ({ navigation }) => {
   const { setTotalIncome, totalIncome } = useContext(NavContext)
   const [source, setSource] = useState("")
   const [amount, setAmount] = useState("")
+  const [dailyamount, setDailyAmount] = useState("")
   const [checked, setChecked] = useState(true);
   const [frequency, setFrequency] = useState('monthly');
-  const [editMode, setEditMode] = useState(false);
   const [selectedIncome, setSelectedIncome] = useState(null);
+  const [editMode, setEditMode] = useState(false);
   const [incomeList, setIncomeList] = useState([])
-
   useEffect(() => {
     const fetchIncomeData = async () => {
       const data = await loadBudgetData();
@@ -45,10 +45,9 @@ const IncomePage = ({ navigation }) => {
       source.trim(),
       new Date().toISOString().split("T")[0],
       checked,
-      frequency,
+      checked ? frequency : null, // Set frequency only if recurring,
       "income"
     );
-
     const data = await loadBudgetData();
     data.income = data.income ?? [];
     data.income.push(newIncome);
@@ -57,6 +56,27 @@ const IncomePage = ({ navigation }) => {
     setIncomeList(data.income);
     setSource("");
     setAmount("");
+  };
+  const handleUpdateDailyIncome = async (entryId, newAmount) => {
+    const parsedAmount = parseFloat(newAmount);
+    if (isNaN(parsedAmount)) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
+    }
+
+    try {
+      const data = await loadBudgetData();
+      const updatedIncome = data.income.map((item) =>
+        item.id === entryId ? { ...item, amount: item.amount + parsedAmount } : item
+      );
+      await saveBudgetData({ ...data, income: updatedIncome });
+      setIncomeList(updatedIncome);
+      setSelectedIncome(null);
+      setDailyAmount("");
+    } catch (error) {
+      console.error("Failed to update income:", error);
+      Alert.alert("Error", "Failed to update income. Please try again.");
+    }
   };
 
   const handleDeleteIncome = async (entryId) => {
@@ -73,8 +93,11 @@ const IncomePage = ({ navigation }) => {
   };
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Add Income</Text>
-
+      {/* Total Income Summary */}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryLabel}>Total Monthly Income</Text>
+        <Text style={styles.summaryAmount}>{totalIncome} JD</Text>
+      </View>
       {/* Add Income Form */}
       <View style={styles.formContainer}>
         <View style={styles.inputContainer}>
@@ -108,7 +131,7 @@ const IncomePage = ({ navigation }) => {
           />
         </View>
 
-        <View style={styles.inputContainer}>
+        {checked && <View style={styles.inputContainer}>
           <Text style={styles.label}>Frequency</Text>
           <RadioButton.Group onValueChange={value => setFrequency(value)} value={frequency}>
             <View style={styles.radioRow}>
@@ -126,29 +149,67 @@ const IncomePage = ({ navigation }) => {
               </View>
             </View>
           </RadioButton.Group>
-        </View>
+        </View>}
 
         <TouchableOpacity style={styles.addButton} onPress={handleAddIncome}>
           <Text style={styles.addButtonText}>Add Income</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Total Income Summary */}
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Total Monthly Income</Text>
-        <Text style={styles.summaryAmount}>{totalIncome} JD</Text>
-      </View>
-
-      {/* Income List */}
+      {/* Daily Income List */}
       <View style={styles.listContainer}>
-        <Text style={styles.listTitle}>Recent Income Entries</Text>
-        {incomeList.length === 0 ? (
+        <Text style={styles.listTitle}>Daily Income Entries</Text>
+        {incomeList.filter((income) => income.frequency === "Daily").length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No income entries yet</Text>
+            <Text style={styles.emptyStateText}>No daily income entries yet</Text>
             <Text style={styles.emptyStateSubtext}>Add your first income source above</Text>
           </View>
         ) : (
-          incomeList.map((income) => (
+          incomeList.filter((income) => income.frequency === "Daily").map((income) => (
+            <TouchableOpacity key={income.id} onPress={() => setSelectedIncome(income)}>
+              <View key={income.id} style={styles.incomeItem}>
+                <View style={styles.incomeInfo}>
+                  <Text style={styles.incomeSource}>{income.source}</Text>
+                  <Text style={styles.incomeDate}>{income.startDate}</Text>
+                </View>
+                <Text style={styles.incomeAmount}>+{income.amount} JD</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+      {/* Weekly Income List */}
+      <View style={styles.listContainer}>
+        <Text style={styles.listTitle}>Weekly Income Entries</Text>
+        {incomeList.filter((income) => income.frequency === "weekly").length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No Weekly income entries yet</Text>
+            <Text style={styles.emptyStateSubtext}>Add your first income source above</Text>
+          </View>
+        ) : (
+          incomeList.filter((income) => income.frequency === "weekly").map((income) => (
+            <TouchableOpacity key={income.id} onPress={() => setSelectedIncome(income)}>
+              <View key={income.id} style={styles.incomeItem}>
+                <View style={styles.incomeInfo}>
+                  <Text style={styles.incomeSource}>{income.source}</Text>
+                  <Text style={styles.incomeDate}>{income.startDate}</Text>
+                </View>
+                <Text style={styles.incomeAmount}>+{income.amount} JD</Text>
+              </View>
+            </TouchableOpacity>
+          ))
+        )}
+      </View>
+
+      {/* Monthly Income List */}
+      <View style={styles.listContainer}>
+        <Text style={styles.listTitle}>Monthly Income Entries</Text>
+        {incomeList.filter((income) => income.frequency === "monthly").length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No Monthly income entries yet</Text>
+            <Text style={styles.emptyStateSubtext}>Add your first income source above</Text>
+          </View>
+        ) : (
+          incomeList.filter((income) => income.frequency === "monthly").map((income) => (
             <TouchableOpacity key={income.id} onPress={() => setSelectedIncome(income)}>
               <View key={income.id} style={styles.incomeItem}>
                 <View style={styles.incomeInfo}>
@@ -173,13 +234,30 @@ const IncomePage = ({ navigation }) => {
             <View style={styles.modalOverlay}>
               <TouchableWithoutFeedback>
                 <View style={styles.modalContent}>
-                  <Text style={styles.modalTitle}>Income: {selectedIncome?.source}</Text>
-
-                  <TouchableOpacity style={styles.modalButton} onPress={() => {
-                    setEditMode(!editMode)
-                  }}>
-                    <Text style={styles.modalButtonText}>{editMode ? "Just Delete it" : "Edit Entry"}</Text>
-                  </TouchableOpacity>
+                  <Text style={styles.modalTitle}> {selectedIncome?.source}</Text>
+                  {selectedIncome?.frequency === "Daily" ? <View style={styles.inputContainer}>
+                    <Text style={styles.label}>Amount (JD)</Text>
+                    <TextInput
+                      style={styles.textInput}
+                      placeholder="0.00"
+                      value={dailyamount}
+                      onChangeText={setDailyAmount}
+                      keyboardType="numeric"
+                      placeholderTextColor="#95A5A6"
+                    />
+                    <TouchableOpacity
+                      style={styles.modalButton}
+                      onPress={() => { handleUpdateDailyIncome(selectedIncome.id, dailyamount) }}
+                    >
+                      <Text style={styles.modalButtonText}>Save Changes</Text>
+                    </TouchableOpacity>
+                  </View>
+                    :
+                    <TouchableOpacity style={[styles.modalButton]} onPress={() => {
+                      setEditMode(!editMode)
+                    }}>
+                      <Text style={styles.modalButtonText}>{editMode ? "Just Delete it" : "Edit Entry"}</Text>
+                    </TouchableOpacity>}
 
                   <TouchableOpacity style={[styles.modalButton, styles.deleteButton]} onPress={() => {
                     setSelectedIncome(null)

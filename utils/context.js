@@ -5,6 +5,7 @@ export const NavProvider = ({ children }) => {
     const [totalIncome, setTotalIncome] = useState(0);
     const [totalExpenses, setTotalExpenses] = useState(0);
     const [totalSavings, setTotalSavings] = useState(0);
+    const [incomeData, setIncomeData] = useState([]);
   return (
     <NavContext.Provider value={{
         totalIncome,
@@ -12,7 +13,9 @@ export const NavProvider = ({ children }) => {
         totalExpenses,
         setTotalExpenses,
         totalSavings,
-        setTotalSavings
+        setTotalSavings,
+        incomeData,
+        setIncomeData
     }}>
       {children}
     </NavContext.Provider>

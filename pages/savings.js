@@ -1,57 +1,34 @@
-import { useState } from "react"
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, Modal } from "react-native"
-import styles from "../styles/savings"
-const SavingsPage = ({ navigation }) => {
-  const [showAddGoal, setShowAddGoal] = useState(false)
-  const [showAddMoney, setShowAddMoney] = useState(false)
-  const [selectedGoal, setSelectedGoal] = useState(null)
-  const [goalName, setGoalName] = useState("")
-  const [targetAmount, setTargetAmount] = useState("")
-  const [deadline, setDeadline] = useState("")
-  const [addAmount, setAddAmount] = useState("")
+import { useState, useEffect, useContext } from "react";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from "react-native";
+import styles from "../styles/savings";
+import { loadBudgetData, saveBudgetData } from "../utils/storage";
+import { NavContext } from "../utils/context";
 
-  const [savingsGoals, setSavingsGoals] = useState([
-    {
-      id: 1,
-      name: "Emergency Fund",
-      targetAmount: 2000,
-      currentAmount: 850,
-      deadline: "2024-12-31",
-      category: "🚨",
-      color: "#E74C3C",
-      completed: false,
-    },
-    {
-      id: 2,
-      name: "Vacation to Europe",
-      targetAmount: 1500,
-      currentAmount: 600,
-      deadline: "2024-08-15",
-      category: "✈️",
-      color: "#3498DB",
-      completed: false,
-    },
-    {
-      id: 3,
-      name: "New Laptop",
-      targetAmount: 800,
-      currentAmount: 800,
-      deadline: "2024-06-01",
-      category: "💻",
-      color: "#27AE60",
-      completed: true,
-    },
-    {
-      id: 4,
-      name: "Car Down Payment",
-      targetAmount: 3000,
-      currentAmount: 1200,
-      deadline: "2024-10-01",
-      category: "🚗",
-      color: "#9B59B6",
-      completed: false,
-    },
-  ])
+const SavingsPage = ({ navigation }) => {
+  const { totalSavings, setTotalSavings } = useContext(NavContext);
+  const [savingsGoals, setSavingsGoals] = useState([]);
+  const [showAddGoal, setShowAddGoal] = useState(false);
+  const [showAddMoney, setShowAddMoney] = useState(false);
+  const [selectedGoal, setSelectedGoal] = useState(null);
+  const [goalName, setGoalName] = useState("");
+  const [targetAmount, setTargetAmount] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [addAmount, setAddAmount] = useState("");
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const data = await loadBudgetData();
+      setSavingsGoals(data.savings || []);
+
+      // Calculate initial total savings
+      const initialTotal = (data.savings || []).reduce(
+        (total, goal) => total + (goal.currentAmount || 0),
+        0
+      );
+      setTotalSavings(initialTotal);
+    };
+    fetchData();
+  }, []);
 
   const categories = [
     { icon: "🚨", name: "Emergency", color: "#E74C3C" },
@@ -62,109 +39,119 @@ const SavingsPage = ({ navigation }) => {
     { icon: "🎓", name: "Education", color: "#E67E22" },
     { icon: "💍", name: "Wedding", color: "#E91E63" },
     { icon: "🎯", name: "General", color: "#34495E" },
-  ]
+  ];
+  const [selectedCategory, setSelectedCategory] = useState(categories[0]);
 
-  const [selectedCategory, setSelectedCategory] = useState(categories[0])
+  const saveToStorage = async (updatedGoals) => {
+    const data = await loadBudgetData();
+    const updatedData = { ...data, savings: updatedGoals };
+    await saveBudgetData(updatedData);
+  };
 
-  const handleAddGoal = () => {
+  const handleAddGoal = async () => {
     if (!goalName.trim() || !targetAmount.trim()) {
-      Alert.alert("Error", "Please fill in goal name and target amount")
-      return
+      Alert.alert("Error", "Please fill in goal name and target amount");
+      return;
     }
 
-    if (isNaN(Number.parseFloat(targetAmount)) || Number.parseFloat(targetAmount) <= 0) {
-      Alert.alert("Error", "Please enter a valid target amount")
-      return
+    const amount = parseFloat(targetAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Error", "Please enter a valid target amount");
+      return;
     }
 
     const newGoal = {
       id: Date.now(),
-      name: goalName.trim(),
-      targetAmount: Number.parseFloat(targetAmount),
+      goal: goalName.trim(),
+      targetAmount: amount,
+      deadline: deadline || "2025-12-31",
       currentAmount: 0,
-      deadline: deadline || "2024-12-31",
       category: selectedCategory.icon,
       color: selectedCategory.color,
       completed: false,
-    }
+    };
 
-    setSavingsGoals([...savingsGoals, newGoal])
-    setGoalName("")
-    setTargetAmount("")
-    setDeadline("")
-    setSelectedCategory(categories[0])
-    setShowAddGoal(false)
-    Alert.alert("Success", "Savings goal created successfully!")
-  }
+    const updatedGoals = [...savingsGoals, newGoal];
+    setSavingsGoals(updatedGoals);
+    await saveToStorage(updatedGoals);
 
-  const handleAddMoney = () => {
+    // Update total savings (though it will be 0 for new goals)
+    const newTotal = updatedGoals.reduce(
+      (total, goal) => total + (goal.currentAmount || 0),
+      0
+    );
+    setTotalSavings(newTotal);
+
+    // Reset form
+    setGoalName("");
+    setTargetAmount("");
+    setDeadline("");
+    setSelectedCategory(categories[0]);
+    setShowAddGoal(false);
+  };
+
+  const handleAddMoney = async () => {
     if (!addAmount.trim()) {
-      Alert.alert("Error", "Please enter an amount")
-      return
+      Alert.alert("Error", "Please enter an amount");
+      return;
     }
 
-    if (isNaN(Number.parseFloat(addAmount)) || Number.parseFloat(addAmount) <= 0) {
-      Alert.alert("Error", "Please enter a valid amount")
-      return
+    const amount = parseFloat(addAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Error", "Please enter a valid amount");
+      return;
     }
 
-    const amount = Number.parseFloat(addAmount)
     const updatedGoals = savingsGoals.map((goal) => {
       if (goal.id === selectedGoal.id) {
-        const newAmount = goal.currentAmount + amount
-        const isCompleted = newAmount >= goal.targetAmount
+        const newAmount = goal.currentAmount + amount;
+        const isCompleted = newAmount >= goal.targetAmount;
 
         if (isCompleted && !goal.completed) {
-          Alert.alert("🎉 Congratulations!", `You've reached your ${goal.name} goal!`)
+          Alert.alert("🎉 Congratulations!", `You've reached your ${goal.goal} goal!`);
         }
 
         return {
           ...goal,
           currentAmount: Math.min(newAmount, goal.targetAmount),
           completed: isCompleted,
-        }
+        };
       }
-      return goal
-    })
+      return goal;
+    });
 
-    setSavingsGoals(updatedGoals)
-    setAddAmount("")
-    setShowAddMoney(false)
-    setSelectedGoal(null)
-    Alert.alert("Success", "Money added to savings goal!")
-  }
+    setSavingsGoals(updatedGoals);
+    await saveToStorage(updatedGoals);
 
-  const getTotalSavings = () => {
-    return savingsGoals.reduce((total, goal) => total + goal.currentAmount, 0)
-  }
+    // Update total savings in context
+    const newTotal = updatedGoals.reduce(
+      (total, goal) => total + (goal.currentAmount || 0),
+      0
+    );
+    setTotalSavings(newTotal);
 
-  const getCompletedGoals = () => {
-    return savingsGoals.filter((goal) => goal.completed).length
-  }
+    setAddAmount("");
+    setShowAddMoney(false);
+    setSelectedGoal(null);
+  };
 
-  const getProgressPercentage = (goal) => {
-    return Math.min((goal.currentAmount / goal.targetAmount) * 100, 100)
-  }
-
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    })
-  }
+  const getCompletedGoals = () => savingsGoals.filter((goal) => goal.completed).length;
+  const getProgressPercentage = (goal) => Math.min((goal.currentAmount / goal.targetAmount) * 100, 100);
+  const formatDate = (dateString) => new Date(dateString).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
 
   const getDaysRemaining = (deadline) => {
-    const today = new Date()
-    const deadlineDate = new Date(deadline)
-    const diffTime = deadlineDate - today
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
-  }
+    const today = new Date();
+    const deadlineDate = new Date(deadline);
+    const diffTime = deadlineDate - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
 
-  const activeGoals = savingsGoals.filter((goal) => !goal.completed)
-  const completedGoals = savingsGoals.filter((goal) => goal.completed)
+  const activeGoals = savingsGoals.filter((goal) => !goal.completed);
+  const completedGoals = savingsGoals.filter((goal) => goal.completed);
 
   return (
     <ScrollView style={styles.container}>
@@ -174,7 +161,7 @@ const SavingsPage = ({ navigation }) => {
       <View style={styles.summaryContainer}>
         <View style={[styles.summaryCard, styles.totalSavingsCard]}>
           <Text style={styles.summaryLabel}>Total Savings</Text>
-          <Text style={styles.summaryAmount}>{getTotalSavings().toFixed(2)} JD</Text>
+          <Text style={styles.summaryAmount}>{totalSavings} JD</Text>
         </View>
 
         <View style={styles.summaryRow}>
@@ -408,8 +395,8 @@ const SavingsPage = ({ navigation }) => {
         </TouchableOpacity>
       </View>
     </ScrollView>
+
   )
-}
+};
 
-
-export default SavingsPage
+export default SavingsPage;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Modal } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, Modal, TouchableWithoutFeedback } from "react-native";
 import styles from "../styles/savings";
 import { loadBudgetData, saveBudgetData } from "../utils/storage";
 import { NavContext } from "../utils/context";
@@ -14,6 +14,8 @@ const SavingsPage = ({ navigation }) => {
   const [targetAmount, setTargetAmount] = useState("");
   const [deadline, setDeadline] = useState("");
   const [addAmount, setAddAmount] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [goalToDelete, setGoalToDelete] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,6 +48,24 @@ const SavingsPage = ({ navigation }) => {
     const data = await loadBudgetData();
     const updatedData = { ...data, savings: updatedGoals };
     await saveBudgetData(updatedData);
+  };
+
+  const handleDeleteGoal = async () => {
+    if (!goalToDelete) return;
+
+    const updatedGoals = savingsGoals.filter(goal => goal.id !== goalToDelete.id);
+    setSavingsGoals(updatedGoals);
+    await saveToStorage(updatedGoals);
+
+    // Update total savings in context
+    const newTotal = updatedGoals.reduce(
+      (total, goal) => total + (goal.currentAmount || 0),
+      0
+    );
+    setTotalSavings(newTotal);
+
+    setShowDeleteModal(false);
+    setGoalToDelete(null);
   };
 
   const handleAddGoal = async () => {
@@ -188,8 +208,8 @@ const SavingsPage = ({ navigation }) => {
           <Text style={styles.sectionTitle}>Active Goals</Text>
           {activeGoals.map((goal) => (
             <View key={goal.id} style={styles.goalCard}>
-              <View style={styles.goalHeader}>
-                <View style={styles.goalInfo}>
+              <TouchableOpacity style={styles.goalHeader} onLongPress={() => { setGoalToDelete(goal); setShowDeleteModal(true); }}>
+                <View style={styles.goalInfo} >
                   <Text style={styles.goalIcon}>{goal.category}</Text>
                   <View style={styles.goalDetails}>
                     <Text style={styles.goalName}>{goal.name}</Text>
@@ -208,7 +228,7 @@ const SavingsPage = ({ navigation }) => {
                 >
                   <Text style={styles.addMoneyButtonText}>+ Add</Text>
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
@@ -237,7 +257,7 @@ const SavingsPage = ({ navigation }) => {
           <Text style={styles.sectionTitle}>🎉 Completed Goals</Text>
           {completedGoals.map((goal) => (
             <View key={goal.id} style={[styles.goalCard, styles.completedGoalCard]}>
-              <View style={styles.goalHeader}>
+              <TouchableOpacity style={styles.goalHeader} onLongPress={() => { setGoalToDelete(goal); setShowDeleteModal(true); }}>
                 <View style={styles.goalInfo}>
                   <Text style={styles.goalIcon}>{goal.category}</Text>
                   <View style={styles.goalDetails}>
@@ -245,7 +265,7 @@ const SavingsPage = ({ navigation }) => {
                     <Text style={styles.completedText}>✅ Goal Achieved!</Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
 
               <View style={styles.progressContainer}>
                 <View style={styles.progressBar}>
@@ -394,6 +414,38 @@ const SavingsPage = ({ navigation }) => {
           <Text style={styles.footerButtonText}>Expenses</Text>
         </TouchableOpacity>
       </View>
+      {/* Delete Goal Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Delete Goal</Text>
+            {goalToDelete && (
+              <Text style={{ marginVertical: 10 }}>
+                Are you sure you want to delete "{goalToDelete.goal}"?
+              </Text>
+            )}
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleDeleteGoal}
+              >
+                <Text style={styles.saveButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
 
   )

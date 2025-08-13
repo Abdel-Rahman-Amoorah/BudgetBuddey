@@ -39,52 +39,119 @@ const IncomePage = ({ navigation }) => {
       return;
     }
 
+    const today = new Date();
+    const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
     const newIncome = new Income(
-      Date.now(), // Unique ID
+      Date.now(),
       parsedAmount,
       source.trim(),
-      new Date().toISOString().split("T")[0],
+      today.toISOString().split("T")[0],
       checked,
-      checked ? frequency : null, // Set frequency only if recurring,
-      "income"
+      checked ? frequency : null
     );
+
     const data = await loadBudgetData();
     data.income = data.income ?? [];
     data.income.push(newIncome);
+
+    // Ensure monthlyRecords exists
+    data.monthlyRecords = data.monthlyRecords ?? {};
+    data.monthlyRecords[monthKey] = data.monthlyRecords[monthKey] ?? { income: 0, expenses: 0, savings: 0 };
+
+    // Add this income to that month’s total
+    data.monthlyRecords[monthKey].income += parsedAmount;
+
     await saveBudgetData(data);
 
     setIncomeList(data.income);
     setSource("");
     setAmount("");
   };
-  const handleUpdateDailyIncome = async (entryId, newAmount) => {
-    const parsedAmount = parseFloat(newAmount);
+
+  const handleUpdateDailyIncome = async (entryId) => {
+    if (!dailyamount.trim()) {
+      Alert.alert("Error", "Please enter an amount");
+      return;
+    }
+
+    const parsedAmount = parseFloat(dailyamount);
     if (isNaN(parsedAmount)) {
       Alert.alert("Error", "Please enter a valid amount");
       return;
     }
 
-    try {
-      const data = await loadBudgetData();
-      const updatedIncome = data.income.map((item) =>
-        item.id === entryId ? { ...item, amount: item.amount + parsedAmount } : item
+    const today = new Date();
+    const todayDate = today.toISOString().split("T")[0];
+    const monthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+    const data = await loadBudgetData();
+    data.income = data.income ?? [];
+    // Ensure monthlyRecords exists
+    data.monthlyRecords = data.monthlyRecords ?? {};
+    data.monthlyRecords[monthKey] = data.monthlyRecords[monthKey] ?? { income: 0, expenses: 0, savings: 0 };
+
+    // Find today's "Daily Income" entry
+    const existingIncomeIndex = data.income.findIndex(item => item.id === entryId);
+    if (existingIncomeIndex >= 0) {
+      // ✅ Add new amount to previous value
+      const oldAmount = data.income[existingIncomeIndex].amount;
+      const newTotal = oldAmount + parsedAmount;
+
+      data.income[existingIncomeIndex].amount = newTotal;
+
+      // Adjust monthly total: add only the new addition
+      data.monthlyRecords[monthKey].income += parsedAmount;
+
+    } else {
+      // Add new income entry if not found
+      const newIncome = new Income(
+        Date.now(),
+        parsedAmount,
+        "Daily",
+        todayDate,
+        false,
+        null
       );
-      await saveBudgetData({ ...data, income: updatedIncome });
-      setIncomeList(updatedIncome);
-      setSelectedIncome(null);
-      setDailyAmount("");
-    } catch (error) {
-      console.error("Failed to update income:", error);
-      Alert.alert("Error", "Failed to update income. Please try again.");
+      data.income.push(newIncome);
+
+      // Add to monthly total
+      data.monthlyRecords[monthKey].income += parsedAmount;
     }
+
+    await saveBudgetData(data);
+
+    setIncomeList(data.income);
+    setDailyAmount(""); // clear input
   };
 
   const handleDeleteIncome = async (entryId) => {
     try {
       const data = await loadBudgetData();
+      const entryToDelete = data.income.find((item) => item.id === entryId);
+
+      if (!entryToDelete) return; // Nothing to delete
+
+      // Extract month key from entry's start date
+      const entryDate = new Date(entryToDelete.startDate);
+      const monthKey = `${entryDate.getFullYear()}-${String(entryDate.getMonth() + 1).padStart(2, '0')}`;
+
+      // Ensure monthlyRecords exists
+      data.monthlyRecords = data.monthlyRecords ?? {};
+      data.monthlyRecords[monthKey] = data.monthlyRecords[monthKey] ?? { income: 0, expenses: 0, savings: 0 };
+
+      // Subtract the amount from that month's total income
+      data.monthlyRecords[monthKey].income -= entryToDelete.amount;
+      if (data.monthlyRecords[monthKey].income < 0) {
+        data.monthlyRecords[monthKey].income = 0; // Avoid negative totals
+      }
+
+      // Remove the entry from income list
       const updatedIncome = data.income.filter((item) => item.id !== entryId);
-      const updatedData = { ...data, income: updatedIncome };
-      await saveBudgetData(updatedData);
+      data.income = updatedIncome;
+
+      await saveBudgetData(data);
+
       setIncomeList(updatedIncome);
       setSelectedIncome(null);
     } catch (err) {
@@ -247,7 +314,7 @@ const IncomePage = ({ navigation }) => {
                     />
                     <TouchableOpacity
                       style={styles.modalButton}
-                      onPress={() => { handleUpdateDailyIncome(selectedIncome.id, dailyamount) }}
+                      onPress={() => { handleUpdateDailyIncome(selectedIncome.id); setSelectedIncome(null) }}
                     >
                       <Text style={styles.modalButtonText}>Save Changes</Text>
                     </TouchableOpacity>

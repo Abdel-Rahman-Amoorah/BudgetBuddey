@@ -18,8 +18,25 @@ export const loadBudgetData = async () => {
     return parsed;
   } catch (e) {
     console.log("⚠️ No valid data found, creating new structure", e);
-    const defaultData = { income: [], expenses: [], savings: [] };
+    const defaultData = { income: [], expenses: [], savings: [] , monthlyRecords: {} };
     await saveBudgetData(defaultData);
     return defaultData;
+  }
+};
+
+export const clearBudgetData = async () => {
+  try {
+    const clearedData = {
+      income: [],
+      expenses: [],
+      savings: [],
+      monthlyRecords: {}
+    };
+    await saveBudgetData(clearedData);
+    console.log("Data cleared and reset to:", clearedData);
+    return clearedData;
+  } catch (error) {
+    console.error("Failed to clear data:", error);
+    throw error;
   }
 };

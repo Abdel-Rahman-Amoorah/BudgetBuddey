@@ -17,6 +17,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     padding: 15,
     borderRadius: 12,
+    marginTop: 20,
     marginBottom: 20,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -66,6 +67,10 @@ const styles = StyleSheet.create({
   expenseCard: {
     borderLeftWidth: 4,
     borderLeftColor: "#E74C3C",
+  },
+  savingsCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#270060",
   },
   positiveBalanceCard: {
     borderLeftWidth: 4,
@@ -194,12 +199,13 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#000000",
     borderRadius: 12,
     padding: 20,
     width: "80%",
@@ -241,6 +247,37 @@ const styles = StyleSheet.create({
   modalCloseButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 10,
+    backgroundColor: "#FFFFFF",
+    padding: 15,
+    borderRadius: 12,
+    marginTop: 20,
+    marginBottom: 30,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  footerButtonWrapper: {
+    flex: 1,
+    backgroundColor: "#2C3E50",
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  footerButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+
     fontWeight: "bold",
   },
 })

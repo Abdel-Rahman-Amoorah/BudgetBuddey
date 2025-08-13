@@ -1,204 +1,159 @@
-import { useState } from "react"
-import { View, Text, TouchableOpacity, ScrollView, Modal } from "react-native"
-import styles from "../styles/history"
-const HistoryPage = () => {
-  const [selectedMonth, setSelectedMonth] = useState("2024-01")
-  const [showMonthPicker, setShowMonthPicker] = useState(false)
+import { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Modal } from "react-native";
+import styles from "../styles/history";
+import { loadBudgetData } from "../utils/storage"; // adjust path if needed
 
-  // Sample historical data - in a real app, this would come from AsyncStorage
-  const historicalData = {
-    "2024-01": {
-      income: [
-        { id: 1, source: "Salary", amount: 1200, date: "2024-01-01", type: "income" },
-        { id: 2, source: "Freelance", amount: 300, date: "2024-01-15", type: "income" },
-        { id: 3, source: "Side Project", amount: 150, date: "2024-01-20", type: "income" },
-      ],
-      expenses: [
-        {
-          id: 4,
-          category: "🛒",
-          categoryName: "Food",
-          description: "Groceries",
-          amount: 45,
-          date: "2024-01-02",
-          type: "expense",
-        },
-        {
-          id: 5,
-          category: "🚗",
-          categoryName: "Transport",
-          description: "Gas",
-          amount: 30,
-          date: "2024-01-03",
-          type: "expense",
-        },
-        {
-          id: 6,
-          category: "🏠",
-          categoryName: "Rent",
-          description: "Monthly Rent",
-          amount: 400,
-          date: "2024-01-01",
-          type: "expense",
-        },
-        {
-          id: 7,
-          category: "📱",
-          categoryName: "Phone",
-          description: "Monthly Bill",
-          amount: 25,
-          date: "2024-01-05",
-          type: "expense",
-        },
-        {
-          id: 8,
-          category: "🎬",
-          categoryName: "Entertainment",
-          description: "Movie Night",
-          amount: 15,
-          date: "2024-01-10",
-          type: "expense",
-        },
-        {
-          id: 9,
-          category: "🛒",
-          categoryName: "Food",
-          description: "Restaurant",
-          amount: 35,
-          date: "2024-01-12",
-          type: "expense",
-        },
-      ],
-    },
-    "2024-02": {
-      income: [
-        { id: 10, source: "Salary", amount: 1200, date: "2024-02-01", type: "income" },
-        { id: 11, source: "Bonus", amount: 500, date: "2024-02-14", type: "income" },
-      ],
-      expenses: [
-        {
-          id: 12,
-          category: "🛒",
-          categoryName: "Food",
-          description: "Groceries",
-          amount: 60,
-          date: "2024-02-02",
-          type: "expense",
-        },
-        {
-          id: 13,
-          category: "🏠",
-          categoryName: "Rent",
-          description: "Monthly Rent",
-          amount: 400,
-          date: "2024-02-01",
-          type: "expense",
-        },
-        {
-          id: 14,
-          category: "👕",
-          categoryName: "Clothing",
-          description: "Winter Jacket",
-          amount: 80,
-          date: "2024-02-10",
-          type: "expense",
-        },
-      ],
-    },
-    "2024-03": {
-      income: [{ id: 15, source: "Salary", amount: 1200, date: "2024-03-01", type: "income" }],
-      expenses: [
-        {
-          id: 16,
-          category: "🛒",
-          categoryName: "Food",
-          description: "Groceries",
-          amount: 50,
-          date: "2024-03-02",
-          type: "expense",
-        },
-        {
-          id: 17,
-          category: "🏠",
-          categoryName: "Rent",
-          description: "Monthly Rent",
-          amount: 400,
-          date: "2024-03-01",
-          type: "expense",
-        },
-      ],
-    },
-  }
+const HistoryPage = ({ navigation }) => {
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [rawData, setRawData] = useState({ income: [], expenses: [], savings: [], monthlyRecords: {} });
+  const [months, setMonths] = useState([]);
+  const [transactions, setTransactions] = useState([]);
 
-  const months = [
-    { value: "2024-01", label: "January 2024" },
-    { value: "2024-02", label: "February 2024" },
-    { value: "2024-03", label: "March 2024" },
-    { value: "2024-04", label: "April 2024" },
-    { value: "2024-05", label: "May 2024" },
-    { value: "2024-06", label: "June 2024" },
-  ]
+  // helper: get "YYYY-MM" from a date string
+  const monthFromDate = (d) => (d ? d.slice(0, 7) : null);
 
-  const getCurrentMonthData = () => {
-    return historicalData[selectedMonth] || { income: [], expenses: [] }
-  }
+  // load data once on mount, build months list
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const data = await loadBudgetData();
+        const incoming = {
+          income: data.income ?? [],
+          expenses: data.expenses ?? [],
+          savings: data.savings ?? [],
+          monthlyRecords: data.monthlyRecords ?? {},
+        };
+        setRawData(incoming);
 
-  const getCombinedTransactions = () => {
-    const monthData = getCurrentMonthData()
-    const allTransactions = [...monthData.income, ...monthData.expenses]
+        // collect possible month keys from monthlyRecords and from each entry date
+        const keysFromRecords = Object.keys(incoming.monthlyRecords);
+        const keysFromIncome = incoming.income.map(i => monthFromDate(i.startDate)).filter(Boolean);
+        const keysFromExpenses = incoming.expenses.map(e => monthFromDate(e.date)).filter(Boolean);
 
-    // Sort by date (newest first)
-    return allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date))
-  }
+        const setKeys = new Set([...keysFromRecords, ...keysFromIncome, ...keysFromExpenses]);
+        const monthList = Array.from(setKeys).sort().reverse(); // newest first
 
+        const monthOptions = monthList.map(k => ({
+          value: k,
+          label: new Date(`${k}-01`).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+        }));
+
+        setMonths(monthOptions);
+        // default to latest month if nothing selected
+        if (!selectedMonth) setSelectedMonth(monthList[0] ?? (new Date()).toISOString().slice(0, 7));
+      } catch (err) {
+        console.error("Error loading budget data:", err);
+      }
+    };
+
+    init();
+    // run once
+  }, []);
+
+  // rebuild transactions whenever rawData or selectedMonth changes
+  useEffect(() => {
+    if (!selectedMonth || !rawData) {
+      setTransactions([]);
+      return;
+    }
+
+    const records = rawData.monthlyRecords || {};
+    let txs = [];
+
+    // 1) Prefer monthlyRecords arrays if they exist
+    const rec = records[selectedMonth];
+    if (rec && (Array.isArray(rec.income) || Array.isArray(rec.expenses) || Array.isArray(rec.savings))) {
+      txs = [
+        ...(rec.income || []),
+        ...(rec.expenses || []),
+        ...(rec.savings || [])
+      ];
+    }
+
+    // 2) Fallback: build from flat lists
+    if (txs.length === 0) {
+      txs = [
+        ...(rawData.income || []).filter(i => monthFromDate(i.startDate) === selectedMonth),
+        ...(rawData.expenses || []).filter(e => monthFromDate(e.date) === selectedMonth),
+        ...(rawData.savings || []).filter(s => monthFromDate(s.date) === selectedMonth),
+      ];
+    }
+
+    // normalize & sort
+    txs = txs
+      .map(t => ({
+        ...t,
+        type: t.type || (t.source ? "income" : t.category === "Savings" ? "savings" : "expense")
+      }))
+      .sort((a, b) => new Date(b.date || b.startDate) - new Date(a.date || a.startDate));
+
+    setTransactions(txs);
+  }, [rawData, selectedMonth]);
+
+  // get totals:
   const getMonthSummary = () => {
-    const monthData = getCurrentMonthData()
-    const totalIncome = monthData.income.reduce((sum, item) => sum + item.amount, 0)
-    const totalExpenses = monthData.expenses.reduce((sum, item) => sum + item.amount, 0)
-    const balance = totalIncome - totalExpenses
+    const rec = rawData.monthlyRecords?.[selectedMonth];
 
-    return { totalIncome, totalExpenses, balance }
-  }
+    // if monthlyRecords has numeric totals
+    if (rec && (typeof rec.income === "number" || typeof rec.expenses === "number" || typeof rec.savings === "number")) {
+      const totalIncome = Number(rec.income || 0);
+      const totalExpenses = Number(rec.expenses || 0);
+      const totalSavings = Number(rec.savings || 0);
+      return { totalIncome, totalExpenses, totalSavings, balance: totalIncome - totalExpenses - totalSavings };
+    }
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    })
-  }
+    // if monthlyRecords has arrays
+    if (rec && (Array.isArray(rec.income) || Array.isArray(rec.expenses) || Array.isArray(rec.savings))) {
+      const totalIncome = (rec.income || []).reduce((s, i) => s + (i.amount || 0), 0);
+      const totalExpenses = (rec.expenses || []).reduce((s, e) => s + (e.amount || 0), 0);
+      const totalSavings = (rec.savings || []).reduce((s, sv) => s + (sv.amount || 0), 0);
+      return { totalIncome, totalExpenses, totalSavings, balance: totalIncome - totalExpenses - totalSavings };
+    }
+
+    // fallback
+    const totalIncome = transactions.filter(t => t.type === "income").reduce((s, i) => s + (i.amount || 0), 0);
+    const totalExpenses = transactions.filter(t => t.type === "expense").reduce((s, e) => s + (e.amount || 0), 0);
+    const totalSavings = transactions.filter(t => t.type === "savings").reduce((s, sv) => s + (sv.amount || 0), 0);
+    return { totalIncome, totalExpenses, totalSavings, balance: totalIncome - totalExpenses - totalSavings };
+  };
+
+  const { totalIncome, totalExpenses, balance, totalSavings } = getMonthSummary();
 
   const getSelectedMonthLabel = () => {
-    const month = months.find((m) => m.value === selectedMonth)
-    return month ? month.label : "Select Month"
-  }
-
-  const { totalIncome, totalExpenses, balance } = getMonthSummary()
-  const transactions = getCombinedTransactions()
+    const found = months.find(m => m.value === selectedMonth);
+    return found ? found.label : selectedMonth ?? "Select month";
+  };
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>History</Text>
 
-      {/* Month Selector */}
+      {/* Month Picker */}
       <TouchableOpacity style={styles.monthSelector} onPress={() => setShowMonthPicker(true)}>
         <Text style={styles.monthSelectorText}>{getSelectedMonthLabel()}</Text>
         <Text style={styles.monthSelectorArrow}>▼</Text>
       </TouchableOpacity>
 
-      {/* Month Summary Cards */}
+      {/* Summary Cards */}
       <View style={styles.summaryContainer}>
         <View style={[styles.summaryCard, styles.incomeCard]}>
           <Text style={styles.summaryLabel}>Total Income</Text>
           <Text style={styles.summaryAmount}>{totalIncome.toFixed(2)} JD</Text>
         </View>
-
         <View style={[styles.summaryCard, styles.expenseCard]}>
           <Text style={styles.summaryLabel}>Total Expenses</Text>
           <Text style={styles.summaryAmount}>{totalExpenses.toFixed(2)} JD</Text>
         </View>
-
+        <View style={[styles.summaryCard, styles.savingsCard]}>
+          <Text style={styles.summaryLabel}>Total Savings</Text>
+          <Text style={styles.summaryAmount}>
+            {rawData.savings
+              .filter(s => monthFromDate(s.date) === selectedMonth)
+              .reduce((sum, s) => sum + (s.amount || 0), 0)
+              .toFixed(2)
+            } JD
+          </Text>
+        </View>
         <View style={[styles.summaryCard, balance >= 0 ? styles.positiveBalanceCard : styles.negativeBalanceCard]}>
           <Text style={styles.summaryLabel}>Net Balance</Text>
           <Text style={styles.summaryAmount}>{balance.toFixed(2)} JD</Text>
@@ -219,43 +174,59 @@ const HistoryPage = () => {
             {transactions.map((transaction) => (
               <View key={transaction.id} style={styles.transactionItem}>
                 <View style={styles.transactionLeft}>
-                  <View
-                    style={[
-                      styles.transactionIcon,
-                      transaction.type === "income" ? styles.incomeIcon : styles.expenseIcon,
-                    ]}
-                  >
+                  <View style={[
+                    styles.transactionIcon,
+                    transaction.type === "income"
+                      ? styles.incomeIcon
+                      : transaction.type === "savings"
+                        ? styles.savingsIcon
+                        : styles.expenseIcon
+                  ]}>
                     <Text style={styles.transactionIconText}>
-                      {transaction.type === "income" ? "💰" : transaction.category}
+                      {transaction.type === "income"
+                        ? "💰"
+                        : transaction.type === "savings"
+                          ? "🏦"
+                          : transaction.category}
                     </Text>
                   </View>
                   <View style={styles.transactionInfo}>
                     <Text style={styles.transactionDescription}>
                       {transaction.type === "income"
                         ? transaction.source
-                        : `${transaction.category} ${transaction.description}`}
+                        : transaction.type === "savings"
+                          ? transaction.description || "Savings"
+                          : `${transaction.category} ${transaction.description}`}
                     </Text>
-                    <Text style={styles.transactionDate}>{formatDate(transaction.date)}</Text>
+                    <Text style={styles.transactionDate}>
+                      {new Date(transaction.date || transaction.startDate)
+                        .toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+                    </Text>
                   </View>
                 </View>
+
                 <View style={styles.transactionRight}>
-                  <Text
-                    style={[
-                      styles.transactionAmount,
-                      transaction.type === "income" ? styles.incomeAmount : styles.expenseAmount,
-                    ]}
-                  >
-                    {transaction.type === "income" ? "+" : "-"}
-                    {transaction.amount.toFixed(2)} JD
+                  <Text style={[
+                    styles.transactionAmount,
+                    transaction.type === "income"
+                      ? styles.incomeAmount
+                      : transaction.type === "savings"
+                        ? styles.savingsAmount
+                        : styles.expenseAmount
+                  ]}>
+                    {transaction.type === "income" ? "+" : transaction.type === "savings" ? "💾" : "-"}
+                    {(transaction.amount || 0).toFixed(2)} JD
                   </Text>
-                  <View
-                    style={[
-                      styles.transactionTypeBadge,
-                      transaction.type === "income" ? styles.incomeBadge : styles.expenseBadge,
-                    ]}
-                  >
+                  <View style={[
+                    styles.transactionTypeBadge,
+                    transaction.type === "income"
+                      ? styles.incomeBadge
+                      : transaction.type === "savings"
+                        ? styles.savingsBadge
+                        : styles.expenseBadge
+                  ]}>
                     <Text style={styles.transactionTypeBadgeText}>
-                      {transaction.type === "income" ? "Income" : "Expense"}
+                      {transaction.type === "income" ? "Income" : transaction.type === "savings" ? "Savings" : "Expense"}
                     </Text>
                   </View>
                 </View>
@@ -266,41 +237,51 @@ const HistoryPage = () => {
       </View>
 
       {/* Month Picker Modal */}
-      <Modal
-        visible={showMonthPicker}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowMonthPicker(false)}
-      >
+      <Modal visible={showMonthPicker} transparent animationType="slide" onRequestClose={() => setShowMonthPicker(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Select Month</Text>
             <ScrollView style={styles.monthsList}>
-              {months.map((month) => (
-                <TouchableOpacity
-                  key={month.value}
-                  style={[styles.monthOption, selectedMonth === month.value && styles.selectedMonthOption]}
-                  onPress={() => {
-                    setSelectedMonth(month.value)
-                    setShowMonthPicker(false)
-                  }}
-                >
-                  <Text
-                    style={[styles.monthOptionText, selectedMonth === month.value && styles.selectedMonthOptionText]}
+              {months.length === 0 ? (
+                <Text style={styles.emptyStateText}>No months available</Text>
+              ) : (
+                months.map((month) => (
+                  <TouchableOpacity
+                    key={month.value}
+                    style={[styles.monthOption, selectedMonth === month.value && styles.selectedMonthOption]}
+                    onPress={() => {
+                      setSelectedMonth(month.value);
+                      setShowMonthPicker(false);
+                    }}
                   >
-                    {month.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Text style={[styles.monthOptionText, selectedMonth === month.value && styles.selectedMonthOptionText]}>
+                      {month.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              )}
             </ScrollView>
+
             <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowMonthPicker(false)}>
               <Text style={styles.modalCloseButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+      {/* Footer Buttons */}
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.footerButtonWrapper} onPress={() => navigation.navigate("Income")}>
+          <Text style={styles.footerButtonText}>Income</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerButtonWrapper} onPress={() => navigation.navigate("Savings")}>
+          <Text style={styles.footerButtonText}>Savings</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerButtonWrapper} onPress={() => navigation.navigate("Expenses")}>
+          <Text style={styles.footerButtonText}>Expenses</Text>
+        </TouchableOpacity>
+      </View>
     </ScrollView>
-  )
-}
+  );
+};
 
-export default HistoryPage
+export default HistoryPage;

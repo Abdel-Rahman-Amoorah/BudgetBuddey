@@ -11,7 +11,6 @@ const DashboardPage = ({ navigation }) => {
   const remainingBalance = totalIncome - totalExpenses - totalSavings
 
   const expenseCategories = []
-  console.log("Income Data:", incomeData)
   const dailyIncome = incomeData
     .filter(item => item.frequency === "Daily")
     .reduce((sum, item) => sum + item.amount, 0)

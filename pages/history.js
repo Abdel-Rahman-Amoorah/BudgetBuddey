@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, ScrollView, Modal } from "react-native";
+import { View, Text, TouchableOpacity, ScrollView, Modal, TouchableWithoutFeedback } from "react-native";
 import styles from "../styles/history";
 import { loadBudgetData } from "../utils/storage"; // adjust path if needed
 
@@ -237,47 +237,46 @@ const HistoryPage = ({ navigation }) => {
       </View>
 
       {/* Month Picker Modal */}
-      <Modal visible={showMonthPicker} transparent animationType="slide" onRequestClose={() => setShowMonthPicker(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Select Month</Text>
-            <ScrollView style={styles.monthsList}>
-              {months.length === 0 ? (
-                <Text style={styles.emptyStateText}>No months available</Text>
-              ) : (
-                months.map((month) => (
-                  <TouchableOpacity
-                    key={month.value}
-                    style={[styles.monthOption, selectedMonth === month.value && styles.selectedMonthOption]}
-                    onPress={() => {
-                      setSelectedMonth(month.value);
-                      setShowMonthPicker(false);
-                    }}
-                  >
-                    <Text style={[styles.monthOptionText, selectedMonth === month.value && styles.selectedMonthOptionText]}>
-                      {month.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              )}
-            </ScrollView>
+      <Modal visible={showMonthPicker}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowMonthPicker(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowMonthPicker(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Month</Text>
+              <ScrollView style={styles.monthsList}>
+                {months.length === 0 ? (
+                  <Text style={styles.emptyStateText}>No months available</Text>
+                ) : (
+                  months.map((month) => (
+                    <TouchableOpacity
+                      key={month.value}
+                      style={[styles.monthOption, selectedMonth === month.value && styles.selectedMonthOption]}
+                      onPress={() => {
+                        setSelectedMonth(month.value);
+                        setShowMonthPicker(false);
+                      }}
+                    >
+                      <Text style={[styles.monthOptionText, selectedMonth === month.value && styles.selectedMonthOptionText]}>
+                        {month.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                )}
+              </ScrollView>
 
-            <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowMonthPicker(false)}>
-              <Text style={styles.modalCloseButtonText}>Close</Text>
-            </TouchableOpacity>
+              <TouchableOpacity style={styles.modalCloseButton} onPress={() => setShowMonthPicker(false)}>
+                <Text style={styles.modalCloseButtonText}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
       {/* Footer Buttons */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerButtonWrapper} onPress={() => navigation.navigate("Income")}>
-          <Text style={styles.footerButtonText}>Income</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButtonWrapper} onPress={() => navigation.navigate("Savings")}>
-          <Text style={styles.footerButtonText}>Savings</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButtonWrapper} onPress={() => navigation.navigate("Expenses")}>
-          <Text style={styles.footerButtonText}>Expenses</Text>
+        <TouchableOpacity style={styles.footerButtonWrapper} onPress={() => navigation.navigate("Dashboard")}>
+          <Text style={styles.footerButtonText}>Dashboard</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

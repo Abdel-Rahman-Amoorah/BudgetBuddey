@@ -130,7 +130,10 @@ const IncomePage = ({ navigation }) => {
       const data = await loadBudgetData();
       const entryToDelete = data.income.find((item) => item.id === entryId);
 
-      if (!entryToDelete) return; // Nothing to delete
+      if (!entryToDelete) {
+        Alert.alert("Error", "Entry not found");
+        return;
+      }
 
       // Extract month key from entry's start date
       const entryDate = new Date(entryToDelete.startDate);

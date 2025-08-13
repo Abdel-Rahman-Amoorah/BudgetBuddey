@@ -183,15 +183,26 @@ const ExpensesPage = ({ navigation }) => {
   const handleDeleteExpense = async (entryId) => {
     try {
       const data = await loadBudgetData();
+      const espenseToDelete = data.expenses.find((item) => item.id === entryId);
+      if (!espenseToDelete) {
+        Alert.alert("Error", "Entry not found");
+        return;
+      }
 
-      // Remove from flat list
+      // Extract month key from entry's start date
+      const entryDate = new Date(espenseToDelete.date);
+      const monthKey = entryDate.toISOString().slice(0, 7); // YYYY-MM
+
+      // Subtract the expense amount from monthly total
+      data.monthlyRecords[monthKey].expenses -= espenseToDelete.amount;
+      if (data.monthlyRecords[monthKey].expenses < 0) {
+        data.monthlyRecords[monthKey].expenses = 0; // Avoid negative totals
+      }
+
+      // Remove the expense from the list
       data.expenses = data.expenses.filter((item) => item.id !== entryId);
-
-      // Remove from monthlyRecords
-      for (const monthKey in data.monthlyRecords) {
-        data.monthlyRecords[monthKey].expenses = data.monthlyRecords[
-          monthKey
-        ].expenses.filter((item) => item.id !== entryId);
+      if (!Array.isArray(data.expenses)) {
+        data.expenses = [];
       }
 
       await saveBudgetData(data);
@@ -213,8 +224,12 @@ const ExpensesPage = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Add / Edit Expense</Text>
-
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryLabel}>Total Monthly Expenses</Text>
+        <Text style={styles.summaryAmount}>
+          {setTotalExpenses ? totalExpenses.toFixed(2) : "0.00"} JD
+        </Text>
+      </View>
       <View style={styles.formContainer}>
         <Text style={styles.sectionTitle}>Select Category</Text>
         <View style={styles.categoriesGrid}>
@@ -315,13 +330,6 @@ const ExpensesPage = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         )}
-      </View>
-
-      <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>Total Monthly Expenses</Text>
-        <Text style={styles.summaryAmount}>
-          {setTotalExpenses ? totalExpenses.toFixed(2) : "0.00"} JD
-        </Text>
       </View>
 
       <View style={styles.listContainer}>

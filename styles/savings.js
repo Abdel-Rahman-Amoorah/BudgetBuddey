@@ -14,6 +14,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   summaryContainer: {
+    marginTop: 20,
     marginBottom: 20,
   },
   summaryCard: {
@@ -193,6 +194,8 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#000000",
     borderRadius: 12,
     padding: 20,
     width: "90%",
@@ -319,6 +322,33 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  emptyState: {
+    alignItems: "center",
+    padding: 30,
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: "#7F8C8D",
+    marginBottom: 5,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: "#95A5A6",
+  },
+  listContainer: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 })
 export default styles;

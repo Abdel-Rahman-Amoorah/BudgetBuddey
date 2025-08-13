@@ -175,8 +175,6 @@ const SavingsPage = ({ navigation }) => {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Savings</Text>
-
       {/* Summary Cards */}
       <View style={styles.summaryContainer}>
         <View style={[styles.summaryCard, styles.totalSavingsCard]}>
@@ -201,11 +199,10 @@ const SavingsPage = ({ navigation }) => {
       <TouchableOpacity style={styles.addGoalButton} onPress={() => setShowAddGoal(true)}>
         <Text style={styles.addGoalButtonText}>+ Add New Savings Goal</Text>
       </TouchableOpacity>
-
+      <Text style={styles.sectionTitle}>Active Goals</Text>
       {/* Active Goals */}
-      {activeGoals.length > 0 && (
+      {activeGoals.length > 0 ? (
         <View style={styles.goalsSection}>
-          <Text style={styles.sectionTitle}>Active Goals</Text>
           {activeGoals.map((goal) => (
             <View key={goal.id} style={styles.goalCard}>
               <TouchableOpacity style={styles.goalHeader} onLongPress={() => { setGoalToDelete(goal); setShowDeleteModal(true); }}>
@@ -249,12 +246,20 @@ const SavingsPage = ({ navigation }) => {
             </View>
           ))}
         </View>
-      )}
+      )
+        : (
+          <View style={styles.listContainer}>
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>No Active Goals</Text>
+              <Text style={styles.emptyStateSubtext}>Add a new goal to get started</Text>
+            </View>
+          </View>
+        )}
+      <Text style={styles.sectionTitle}>🎉 Completed Goals</Text>
 
       {/* Completed Goals */}
-      {completedGoals.length > 0 && (
+      {completedGoals.length > 0 ? (
         <View style={styles.goalsSection}>
-          <Text style={styles.sectionTitle}>🎉 Completed Goals</Text>
           {completedGoals.map((goal) => (
             <View key={goal.id} style={[styles.goalCard, styles.completedGoalCard]}>
               <TouchableOpacity style={styles.goalHeader} onLongPress={() => { setGoalToDelete(goal); setShowDeleteModal(true); }}>
@@ -280,6 +285,13 @@ const SavingsPage = ({ navigation }) => {
               </View>
             </View>
           ))}
+        </View>
+      ) : (
+        <View style={styles.listContainer}>
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>No Completed Savings Goals</Text>
+            <Text style={styles.emptyStateSubtext}>Try completing some!</Text>
+          </View>
         </View>
       )}
 
